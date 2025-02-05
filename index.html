@@ -6,18 +6,138 @@
             width: 512px;
             height: 512px;
             border: 1px solid #ccc;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            background-color: #ccc;
+            position: relative;
             overflow: hidden;
+			transition: transform 0.1s ease;
         }
-        .map-image {
+        .map-tile {
             width: 100%;
             height: 100%;
             object-fit: cover;
+            display: block;
         }
+		html, body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+		
     </style>
 </head>
 <body>
-    <div class="map-container">
-        <img src="https://images.weserv.nl/?url=http://mox.chita.cz:8080/basic/0/0/0/tiles/basic/1/125_126.webp" alt="Mapa" class="map-image">
+    <div class="coordinates">
+        Pozícia: <span id="position">x: 0, z: 0</span><br>
+        <div id="testData" class="test-data"></div>
     </div>
+    <div class="map-container" id="mapContainer"></div>
+
+    <script>
+        let isDragging = false;
+        let startX, startY;
+        let offsetX = 0, offsetY = 0;
+        let sever = 1;
+        let zapad = 1;
+        let juh = 2;
+        let vychod = 2;
+        let zoom = 1;
+
+        function createMapTiles() {
+            const baseUrl = 'https://images.weserv.nl/?url=http://mox.chita.cz:8080/basic/0/0/0/tiles/basic/0/';
+            const container = document.getElementById('mapContainer');
+            
+            // Vytvorte 2x2 grid
+            for (let z = -sever; z < juh; z++) {
+                for (let x = -zapad; x < vychod; x++) {
+                    const img = document.createElement('img');
+                    img.src = `${baseUrl}${250 + x}_${250 + z}.webp`;
+                    img.alt = `Map tile ${x}-${z}`;
+                    img.className = 'map-tile';
+                    img.draggable = false;
+                    container.appendChild(img);
+                }
+            }
+        }
+
+        function startDrag(e) {
+            isDragging = true;
+            startX = e.clientX - offsetX;
+            startY = e.clientY - offsetY;
+        }
+
+        function dragMove(e) {
+            if (!isDragging) return;
+
+            const dx = e.clientX - startX;
+            const dy = e.clientY - startY;
+
+            offsetX = dx;
+            offsetY = dy;
+
+            const container = document.getElementById('mapContainer');
+            container.style.transform = `translate(${dx}px, ${dy}px) scale(${zoom})`;
+        }
+
+        function stopDrag() {
+            isDragging = false;
+        }
+
+        function getMouseMapPosition(e) {
+            const mapContainer = document.getElementById('mapContainer');
+            const rect = mapContainer.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+			
+			currentX = Math.floor(offsetX);
+			currentZ = Math.floor(offsetY);
+            
+            // Prepočet na mapové súradnice s ohľadom na offset a priblíženie
+            const mapX = Math.floor((mouseX - offsetX + currentX) * 3 / zoom - 512 * zapad);
+            const mapZ = Math.floor((mouseY - offsetY + currentZ) * 3 / zoom - 512 * sever);
+                
+            // Aktualizácia zobrazenia súradníc
+            const positionDisplay = document.getElementById('position');
+            positionDisplay.textContent = `x: ${mapX}, z: ${mapZ}`;
+            
+            return { mapX, mapZ };
+        }
+		
+		function zoomMap(e) {
+            e.preventDefault(); // Zabráni predvolenej akcii otáčania kolečka
+
+            // Získanie smeru otáčania kolečka
+            if (e.deltaY < 0) {
+                zoom *= 1.1; // Priblíženie
+            } else {
+                zoom /= 1.1; // Oddialenie
+            }
+
+            // Obmedzenie hodnoty zoomu, aby sa mapy nezosúvali príliš
+            zoom = Math.min(Math.max(zoom, 0.5), 5);
+
+            const container = document.getElementById('mapContainer');
+            container.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${zoom})`; // Aplikovanie zoomu na transformáciu
+        }
+
+        window.onload = function () {
+            createMapTiles();
+
+            const mapContainer = document.getElementById('mapContainer');
+            mapContainer.addEventListener('mousedown', startDrag);
+            mapContainer.addEventListener('mousemove', (e) => {
+                if (isDragging) {
+                    dragMove(e);
+                }
+                // Volanie funkcie na získanie pozície myši
+                getMouseMapPosition(e);
+            });
+            mapContainer.addEventListener('mouseup', stopDrag);
+            mapContainer.addEventListener('mouseleave', stopDrag);
+			mapContainer.addEventListener('wheel', zoomMap);
+        }
+    </script>
 </body>
 </html>
