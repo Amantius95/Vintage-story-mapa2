@@ -93,6 +93,15 @@
 				display: none;
 				text-align: center;
 			}
+			
+			.map-line {
+				position: absolute;
+				height: 2px;
+				background-color: red;
+				transform-origin: 0 50%;
+				pointer-events: none;
+				z-index: 900;
+			}
 		</style>
 	</head>
 	<body onload="loadAll()">
@@ -483,9 +492,23 @@
 					mapLines.push(line);
 				});
 			}
-
-			// Funkcia na aktualizáciu pozície a rotácie čiary
 			
+			function updateLinePosition(line, x1, z1, x2, z2) {
+				const startX = ((x1/8) + 512 * zapad) + 128;
+				const startZ = ((z1/8) + 512 * sever) + 128;
+				const endX = ((x2/8) + 512 * zapad) + 128;
+				const endZ = ((z2/8) + 512 * sever) + 128;
+
+				const length = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endZ - startZ, 2));
+				const angle = Math.atan2(endZ - startZ, endX - startX) * 180 / Math.PI;
+
+				line.style.width = `${length}px`;
+				line.style.left = `${startX}px`;
+				line.style.top = `${startZ}px`;
+				line.style.transform = `rotate(${angle}deg) scale(${1/zoom})`;
+			}
+			
+			// Funkcia na aktualizáciu pozície a rotácie čiary		
 			function updateLinePositions() {
 				activeConnections.forEach((connection, index) => {
 					if (connection) {
