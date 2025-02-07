@@ -52,6 +52,19 @@
 				display: block;
 			}
 			
+			.map-point {
+				position: absolute;
+				width: 20px;
+				height: 20px;
+				transform: translate(-50%, -50%);
+				z-index: 1000;
+				pointer-events: auto;
+				background-size: contain;
+				background-repeat: no-repeat;
+				background-position: center;
+				cursor: pointer;
+			}
+			
 			.map-point-home {
 				background-image: url('Data/Home.svg');
 			}
@@ -66,6 +79,17 @@
 			
 			.map-point-pozor {
 				background-image: url('Data/Pozor.svg');
+			}
+			
+			.point-label {
+				position: absolute;
+				background: white;
+				padding: 2px 8px;
+				border-radius: 7px;
+				transform: translateY(-32px);
+				white-space: nowrap;
+				display: none;
+				text-align: center;
 			}
 		</style>
 	</head>
