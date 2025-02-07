@@ -2,30 +2,55 @@
 <html>
 <head>
     <style>
-        .map-container {
-            width: 512px;
-            height: 512px;
-            border: 1px solid #ccc;
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            grid-template-rows: repeat(3, 1fr);
-            background-color: #ccc;
-            position: relative;
-            overflow: hidden;
-			transition: transform 0.1s ease;
-        }
-        .map-tile {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            display: block;
-        }
-		html, body {
+        html, body {
             margin: 0;
             padding: 0;
             overflow: hidden;
         }
-		
+        
+        .coordinates {
+            position: fixed;
+            top: 17px;
+            left: 10px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .map-container {
+            position: relative;
+            width: 100vw;
+            height: 90vh;
+            margin: 2vh auto;
+            border: 2px solid #333;
+            overflow: hidden;
+            cursor: grab;
+        }
+
+        .map-container:active {
+            cursor: grabbing;
+        }
+
+        .map-grid {
+            position: absolute;
+            display: grid;
+            grid-template-columns: repeat(var(--columns), 512px);
+            grid-template-rows: repeat(var(--rows), 512px);
+            transform-origin: 0 0;
+            transition: transform 0.1s ease-out;
+            background-color: #ccc;
+        }
+
+        .map-tile {
+            width: 512px;
+            height: 512px;
+            background-color: #f0f0f0;
+            position: relative;
+            overflow: hidden;
+            object-fit: cover;
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -33,7 +58,9 @@
         Pozícia: <span id="position">x: 0, z: 0</span><br>
         <div id="testData" class="test-data"></div>
     </div>
-    <div class="map-container" id="mapContainer"></div>
+    <div class="map-container" id="mapContainer">
+        <div class="map-grid" id="mapGrid"></div>
+    </div>
 
     <script>
         let isDragging = false;
@@ -41,15 +68,23 @@
         let offsetX = 0, offsetY = 0;
         let sever = 1;
         let zapad = 1;
-        let juh = 2;
-        let vychod = 2;
+        let juh = 1;
+        let vychod = 1;
         let zoom = 1;
+
+        function updateGridProperties() {
+            const grid = document.getElementById('mapGrid');
+            const columns = zapad + vychod;
+            const rows = sever + juh;
+            grid.style.setProperty('--columns', columns);
+            grid.style.setProperty('--rows', rows);
+        }
 
         function createMapTiles() {
             const baseUrl = 'https://images.weserv.nl/?url=http://mox.chita.cz:8080/basic/0/0/0/tiles/basic/0/';
-            const container = document.getElementById('mapContainer');
+            const grid = document.getElementById('mapGrid');
+            grid.innerHTML = ''; // Clear existing tiles
             
-            // Vytvorte 2x2 grid
             for (let z = -sever; z < juh; z++) {
                 for (let x = -zapad; x < vychod; x++) {
                     const img = document.createElement('img');
@@ -57,15 +92,17 @@
                     img.alt = `Map tile ${x}-${z}`;
                     img.className = 'map-tile';
                     img.draggable = false;
-                    container.appendChild(img);
+                    grid.appendChild(img);
                 }
             }
+            updateGridProperties();
         }
 
         function startDrag(e) {
             isDragging = true;
             startX = e.clientX - offsetX;
             startY = e.clientY - offsetY;
+            document.getElementById('mapContainer').style.cursor = 'grabbing';
         }
 
         function dragMove(e) {
@@ -77,12 +114,13 @@
             offsetX = dx;
             offsetY = dy;
 
-            const container = document.getElementById('mapContainer');
-            container.style.transform = `translate(${dx}px, ${dy}px) scale(${zoom})`;
+            const grid = document.getElementById('mapGrid');
+            grid.style.transform = `translate(${dx}px, ${dy}px) scale(${zoom})`;
         }
 
         function stopDrag() {
             isDragging = false;
+            document.getElementById('mapContainer').style.cursor = 'grab';
         }
 
         function getMouseMapPosition(e) {
@@ -90,37 +128,48 @@
             const rect = mapContainer.getBoundingClientRect();
             const mouseX = e.clientX - rect.left;
             const mouseY = e.clientY - rect.top;
-			
-			currentX = Math.floor(offsetX);
-			currentZ = Math.floor(offsetY);
             
-            // Prepočet na mapové súradnice s ohľadom na offset a priblíženie
-            const mapX = Math.floor((mouseX - offsetX + currentX) * 3 / zoom - 512 * zapad);
-            const mapZ = Math.floor((mouseY - offsetY + currentZ) * 3 / zoom - 512 * sever);
-                
-            // Aktualizácia zobrazenia súradníc
+            const mapX = Math.floor((mouseX - offsetX)/ zoom - 512 * zapad);
+            const mapZ = Math.floor((mouseY - offsetY)/ zoom - 512 * sever);
+            
             const positionDisplay = document.getElementById('position');
             positionDisplay.textContent = `x: ${mapX}, z: ${mapZ}`;
             
             return { mapX, mapZ };
         }
-		
-		function zoomMap(e) {
-            e.preventDefault(); // Zabráni predvolenej akcii otáčania kolečka
 
-            // Získanie smeru otáčania kolečka
-            if (e.deltaY < 0) {
-                zoom *= 1.1; // Priblíženie
-            } else {
-                zoom /= 1.1; // Oddialenie
-            }
+        function zoomMap(e) {
+			e.preventDefault();
 
-            // Obmedzenie hodnoty zoomu, aby sa mapy nezosúvali príliš
-            zoom = Math.min(Math.max(zoom, 0.5), 5);
+			const oldZoom = zoom;
+			if (e.deltaY < 0) {
+				zoom *= 1.1;
+			} else {
+				zoom /= 1.1;
+			}
+			zoom = Math.min(Math.max(zoom, 0.5), 5);
 
-            const container = document.getElementById('mapContainer');
-            container.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${zoom})`; // Aplikovanie zoomu na transformáciu
-        }
+			// Vypočítame pozíciu myši relatívne k mapContainer
+			const mapContainer = document.getElementById('mapContainer');
+			const rect = mapContainer.getBoundingClientRect();
+			const mouseX = e.clientX - rect.left;
+			const mouseY = e.clientY - rect.top;
+
+			// Vypočítame pozíciu myši relatívne ku gridu pred zoomom
+			const mouseXBeforeZoom = (mouseX - offsetX) / oldZoom;
+			const mouseYBeforeZoom = (mouseY - offsetY) / oldZoom;
+
+			// Vypočítame novú pozíciu myši po zoome
+			const mouseXAfterZoom = mouseXBeforeZoom * zoom;
+			const mouseYAfterZoom = mouseYBeforeZoom * zoom;
+
+			// Upravíme offsety tak, aby bod pod myšou zostal na rovnakom mieste
+			offsetX = mouseX - mouseXAfterZoom;
+			offsetY = mouseY - mouseYAfterZoom;
+
+			const grid = document.getElementById('mapGrid');
+			grid.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${zoom})`;
+		}
 
         window.onload = function () {
             createMapTiles();
@@ -131,12 +180,11 @@
                 if (isDragging) {
                     dragMove(e);
                 }
-                // Volanie funkcie na získanie pozície myši
                 getMouseMapPosition(e);
             });
             mapContainer.addEventListener('mouseup', stopDrag);
             mapContainer.addEventListener('mouseleave', stopDrag);
-			mapContainer.addEventListener('wheel', zoomMap);
+            mapContainer.addEventListener('wheel', zoomMap);
         }
     </script>
 </body>
