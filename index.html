@@ -162,7 +162,10 @@
 				try {
 					await Promise.all([
 						loadPoints(),
+						loadMapPoints() // Pridané načítanie bodov
 					]);
+					// Po načítaní inicializujte mapu
+					initializeMap();
 				} catch (error) {
 					console.error('Chyba pri načítaní dát:', error);
 				}
@@ -348,7 +351,7 @@
 			}
 
 			window.onload = function () {
-				createMapTiles();
+				loadAll(); // Načítajte dáta pred inicializáciou mapy
 
 				const mapContainer = document.getElementById('mapContainer');
 				mapContainer.addEventListener('mousedown', startDrag);
@@ -362,7 +365,6 @@
 				mapContainer.addEventListener('mouseleave', stopDrag);
 				mapContainer.addEventListener('wheel', throttle(zoomMap, 50));
 
-				// Pridanie event listenera pre zmenu veľkosti okna
 				window.addEventListener('resize', throttle(updateVisibleTiles, 100));
 			}
 			
@@ -497,8 +499,13 @@
 					}
 				});
 			}
-			createMapLines();
-			createMapPoints();
+			
+			function initializeMap() {
+				createMapTiles();
+				createMapLines();
+				createMapPoints();
+				updateVisibleTiles();
+			}
 		</script>
 	</body>
 </html>
