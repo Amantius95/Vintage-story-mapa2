@@ -269,6 +269,9 @@
 				const grid = document.getElementById('mapGrid');
 				grid.style.transform = `translate(${dx}px, ${dy}px) scale(${zoom})`;
 				
+				// Pridajte aktualizáciu pozície bodov
+				updatePointPositions();
+				
 				// Kontrola viditeľných dlaždíc pri posúvaní
 				updateVisibleTiles();
 			}
@@ -321,6 +324,9 @@
 
 				const grid = document.getElementById('mapGrid');
 				grid.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${zoom})`;
+				
+				// Pridajte aktualizáciu pozície bodov
+				updatePointPositions();
 				
 				// Kontrola viditeľných dlaždíc pri zoomovaní
 				updateVisibleTiles();
@@ -420,8 +426,9 @@
 				points.forEach(point => {
 					const pointElement = document.getElementById(`point-${point.id}`);
 					if (pointElement) {
-						const x = (((point.x /8) + 512 * zapad) + 128);
-						const z = (((point.z /8) + 512 * sever) + 128);
+						// Upravte výpočet pozície tak, aby bral do úvahy offsetX a offsetY
+						const x = ((point.x / 8) + 512 * zapad) + 128;
+						const z = ((point.z / 8) + 512 * sever) + 128;
 						pointElement.style.left = `${x}px`;
 						pointElement.style.top = `${z}px`;
 						pointElement.style.transform = `translate(-50%, -50%) scale(${1/zoom})`;
@@ -527,6 +534,7 @@
 				createMapTiles();
 				createMapLines();
 				createMapPoints();
+				updatePointPositions();
 				updateVisibleTiles();
 			}
 		</script>
