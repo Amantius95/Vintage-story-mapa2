@@ -427,8 +427,8 @@
 					const pointElement = document.getElementById(`point-${point.id}`);
 					if (pointElement) {
 						// Upravte výpočet pozície tak, aby bral do úvahy offsetX a offsetY
-						const x = ((point.x / 2) + 512 * zapad) + 128;
-						const z = ((point.z / 2) + 512 * sever) + 128;
+						const x = ((point.x) + 512 * zapad);
+						const z = ((point.z) + 512 * sever);
 						pointElement.style.left = `${x}px`;
 						pointElement.style.top = `${z}px`;
 						pointElement.style.transform = `translate(-50%, -50%) scale(${1/zoom})`;
